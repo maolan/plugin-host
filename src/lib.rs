@@ -2,6 +2,7 @@ pub use maolan_plugin_protocol::*;
 
 pub mod blocklist;
 pub mod clap;
+pub mod cli;
 pub mod gui_win32;
 pub mod gui_x11;
 pub mod host;

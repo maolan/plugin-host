@@ -90,7 +90,7 @@ Add the crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-maolan-plugin-host = "0.0.1"
+maolan-plugin-host = "0.1.0"
 ```
 
 The library re-exports `maolan_plugin_protocol` and exposes the following
@@ -98,6 +98,7 @@ modules:
 
 - `clap` – Low-level CLAP C FFI bindings and host extension helpers.
 - `au` – macOS Audio Unit host, supporting both AUv2 and AUv3 components.
+- `cli` – Process entry point used by the DAW host binary (`cli::run()`).
 - `host` – Shared-memory runtime that drives a plugin instance.
 - `lv2` – LV2 host implementation (Unix only), built on the pure-Rust
   `maolan-lv2` crate (no C lilv dependency).
@@ -107,8 +108,9 @@ modules:
 - `vst3` – VST3 bindings and helpers.
 - `vst3_lv2_host` – VST3/LV2 specific runtime loop and GUI support.
 
-Most users will only need the binary; the library API is intended for the
-Maolan engine and advanced integrations.
+The DAW's `maolan-plugin-host` binary is a thin wrapper around `cli::run()`.
+Other applications can use the library's host, scanner, and format modules to
+build their own plugin-host process.
 
 ## Building
 
@@ -126,7 +128,3 @@ cargo build --release
     libraries are required.
 - **Windows**
   - No extra system libraries required.
-
-## License
-
-BSD-2-Clause. See `Cargo.toml` for the full license identifier.
