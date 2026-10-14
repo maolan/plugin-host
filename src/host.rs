@@ -861,7 +861,7 @@ impl HostRuntime {
                                                         }
                                                     }
                                                     plugin
-                                                        .gui_set_parent(hwnd as u64)
+                                                        .gui_set_parent(hwnd as usize)
                                                         .inspect(|_| ())
                                                         .inspect_err(|_e| ())
                                                 })
@@ -905,7 +905,7 @@ impl HostRuntime {
                                     let embedded_wayland = if gui_mode == GuiMode::Embedded
                                         && header.gui_parent_api() == GuiParentApi::Wayland
                                     {
-                                        let parent = header.parent_window_usize() as u64;
+                                        let parent = header.parent_window_usize();
                                         if parent != 0
                                             && plugin.gui_is_api_supported("wayland", false)
                                         {
@@ -982,7 +982,7 @@ impl HostRuntime {
                                                         window.resize(w, h);
                                                     }
                                                     plugin
-                                                        .gui_set_parent(window_id)
+                                                        .gui_set_parent(window_id as usize)
                                                         .inspect(|_| ())
                                                         .inspect_err(|_e| ())
                                                 })

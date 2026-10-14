@@ -1134,7 +1134,7 @@ impl PluginInstance {
         }
     }
 
-    pub fn gui_set_parent(&self, window_id: u64) -> Result<(), String> {
+    pub fn gui_set_parent(&self, window_id: usize) -> Result<(), String> {
         self.gui_set_parent_with_api(
             window_id,
             #[cfg(windows)]
@@ -1144,7 +1144,7 @@ impl PluginInstance {
         )
     }
 
-    pub fn gui_set_parent_with_api(&self, window_id: u64, api_name: &str) -> Result<(), String> {
+    pub fn gui_set_parent_with_api(&self, window_id: usize, api_name: &str) -> Result<(), String> {
         let gui = self.gui.ok_or("GUI extension not available")?;
         let set_parent = unsafe { (*gui).set_parent }.ok_or("gui.set_parent is null")?;
 
@@ -1187,7 +1187,7 @@ impl PluginInstance {
         }
     }
 
-    pub fn gui_set_transient(&self, window_id: u64) -> Result<(), String> {
+    pub fn gui_set_transient(&self, window_id: usize) -> Result<(), String> {
         let gui = self.gui.ok_or("GUI extension not available")?;
         let set_transient = unsafe { (*gui).set_transient }.ok_or("gui.set_transient is null")?;
 
