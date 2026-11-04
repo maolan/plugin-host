@@ -143,6 +143,8 @@ struct PortBuffers {
     outputs: Vec<ClapAudioBuffer>,
     _input_ptrs: Vec<Vec<*mut f32>>,
     _output_ptrs: Vec<Vec<*mut f32>>,
+    main_audio_inputs: u32,
+    main_audio_outputs: u32,
 }
 
 impl PortBuffers {
@@ -166,6 +168,7 @@ impl PortBuffers {
 
         let mut inputs = Vec::with_capacity(in_count);
         let mut input_ptrs = Vec::with_capacity(in_count);
+        let mut main_audio_inputs = 0;
         let mut global_ch: usize = 0;
         for i in 0..in_count {
             let mut info = crate::clap::ClapAudioPortInfo {
@@ -181,7 +184,11 @@ impl PortBuffers {
                 .map(|f| unsafe { f(plugin, i as u32, true, &mut info) })
                 .unwrap_or(false)
             {
-                info.channel_count.max(1) as usize
+                let channels = info.channel_count.max(1);
+                if info.flags & crate::clap::CLAP_AUDIO_PORT_IS_MAIN != 0 {
+                    main_audio_inputs += channels;
+                }
+                channels as usize
             } else {
                 1
             };
@@ -207,6 +214,7 @@ impl PortBuffers {
 
         let mut outputs = Vec::with_capacity(out_count);
         let mut output_ptrs = Vec::with_capacity(out_count);
+        let mut main_audio_outputs = 0;
         global_ch = 0;
         for i in 0..out_count {
             let mut info = crate::clap::ClapAudioPortInfo {
@@ -222,7 +230,11 @@ impl PortBuffers {
                 .map(|f| unsafe { f(plugin, i as u32, false, &mut info) })
                 .unwrap_or(false)
             {
-                info.channel_count.max(1) as usize
+                let channels = info.channel_count.max(1);
+                if info.flags & crate::clap::CLAP_AUDIO_PORT_IS_MAIN != 0 {
+                    main_audio_outputs += channels;
+                }
+                channels as usize
             } else {
                 1
             };
@@ -251,6 +263,8 @@ impl PortBuffers {
             outputs,
             _input_ptrs: input_ptrs,
             _output_ptrs: output_ptrs,
+            main_audio_inputs,
+            main_audio_outputs,
         })
     }
 
@@ -668,6 +682,13 @@ impl HostRuntime {
                 midi_in_ports,
                 midi_out_ports,
             );
+            if let Some(pb) = port_buffers.as_ref() {
+                maolan_plugin_protocol::protocol::write_main_port_counts_to_scratch(
+                    ptr,
+                    pb.main_audio_inputs,
+                    pb.main_audio_outputs,
+                );
+            }
             latency_samples_atomic(ptr).store(plugin.latency_samples(), Ordering::Release);
         }
 
@@ -1097,6 +1118,11 @@ impl HostRuntime {
                                     header.midi_in_port_count.load(Ordering::Acquire),
                                     header.midi_out_port_count.load(Ordering::Acquire),
                                 );
+                                maolan_plugin_protocol::protocol::write_main_port_counts_to_scratch(
+                                    ptr,
+                                    pb.main_audio_inputs,
+                                    pb.main_audio_outputs,
+                                );
                             }
                             Ok(())
                         } else {
@@ -1105,6 +1131,15 @@ impl HostRuntime {
                     }
                     _ => Err(format!("Unknown request type: {req}")),
                 };
+                if req == 2
+                    && let Err(e) = &result
+                {
+                    tracing::warn!(
+                        plugin_id = self.plugin_id(),
+                        error = %e,
+                        "CLAP state load failed in plugin host"
+                    );
+                }
                 header
                     .request_status
                     .store(if result.is_ok() { 1 } else { 2 }, Ordering::Release);
@@ -1188,6 +1223,11 @@ impl HostRuntime {
                             pb.audio_output_channels(),
                             header.midi_in_port_count.load(Ordering::Acquire),
                             header.midi_out_port_count.load(Ordering::Acquire),
+                        );
+                        maolan_plugin_protocol::protocol::write_main_port_counts_to_scratch(
+                            ptr,
+                            pb.main_audio_inputs,
+                            pb.main_audio_outputs,
                         );
                     }
                 }
@@ -1693,5 +1733,81 @@ mod transport_tests {
         assert_eq!(transport.song_pos_seconds, FIXED_TIME_SCALE as i64);
         assert_eq!(transport.song_pos_beats, (2.0 * FIXED_TIME_SCALE) as i64);
         assert_eq!((transport.tsig_num, transport.tsig_denom), (3, 4));
+    }
+}
+
+#[cfg(test)]
+mod port_tests {
+    use super::*;
+    use crate::clap::{
+        CLAP_AUDIO_PORT_IS_MAIN, ClapAudioPortInfo, ClapPlugin, ClapPluginAudioPorts,
+    };
+    use std::ffi::{c_char, c_void};
+
+    unsafe extern "C" fn port_count(_plugin: *const ClapPlugin, is_input: bool) -> u32 {
+        if is_input { 2 } else { 1 }
+    }
+
+    unsafe extern "C" fn port_get(
+        _plugin: *const ClapPlugin,
+        index: u32,
+        _is_input: bool,
+        info: *mut ClapAudioPortInfo,
+    ) -> bool {
+        if info.is_null() {
+            return false;
+        }
+        let info = unsafe { &mut *info };
+        info.channel_count = 2;
+        info.flags = if index == 0 {
+            CLAP_AUDIO_PORT_IS_MAIN
+        } else {
+            0
+        };
+        true
+    }
+
+    unsafe extern "C" fn get_extension(
+        _plugin: *const ClapPlugin,
+        id: *const c_char,
+    ) -> *const c_void {
+        if id == CLAP_EXT_AUDIO_PORTS.as_ptr() {
+            &raw const TEST_AUDIO_PORTS as *const _ as *const c_void
+        } else {
+            ptr::null()
+        }
+    }
+
+    static TEST_AUDIO_PORTS: ClapPluginAudioPorts = ClapPluginAudioPorts {
+        count: Some(port_count),
+        get: Some(port_get),
+    };
+
+    #[test]
+    fn auxiliary_channels_are_not_counted_as_main_inputs() {
+        let plugin = ClapPlugin {
+            desc: ptr::null(),
+            plugin_data: ptr::null_mut(),
+            init: None,
+            destroy: None,
+            activate: None,
+            deactivate: None,
+            start_processing: None,
+            stop_processing: None,
+            reset: None,
+            process: None,
+            get_extension: Some(get_extension),
+            on_main_thread: None,
+        };
+        let mut bytes = vec![0u8; SHM_SIZE];
+        let buffers = PortBuffers::from_plugin(&plugin, bytes.as_mut_ptr(), 4, 2)
+            .expect("test audio ports should enumerate");
+
+        assert_eq!(buffers.audio_input_channels(), 4);
+        assert_eq!(buffers.audio_output_channels(), 2);
+        assert_eq!(buffers.main_audio_inputs, 2);
+        assert_eq!(buffers.main_audio_outputs, 2);
+        assert_eq!(buffers.inputs.len(), 2);
+        assert_eq!(buffers.outputs.len(), 1);
     }
 }

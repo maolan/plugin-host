@@ -494,6 +494,7 @@ pub const CLAP_EXT_LOG: &CStr = c"clap.log";
 pub const CLAP_EXT_POSIX_FD_SUPPORT: &CStr = c"clap.posix-fd-support";
 pub const CLAP_PORT_MONO: &str = "clap.mono";
 pub const CLAP_PORT_STEREO: &str = "clap.stereo";
+pub const CLAP_AUDIO_PORT_IS_MAIN: u32 = 1;
 
 #[repr(C)]
 pub struct ClapPluginThreadPool {
