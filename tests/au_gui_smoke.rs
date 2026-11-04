@@ -1,4 +1,4 @@
-#![cfg(target_os = "macos")]
+#![cfg(all(target_os = "macos", not(miri)))]
 use maolan_plugin_protocol::protocol::*;
 use maolan_plugin_protocol::shm::ShmMapping;
 use std::sync::atomic::Ordering;

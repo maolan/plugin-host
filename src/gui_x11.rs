@@ -105,7 +105,7 @@ pub mod x11 {
         }
         /// # Safety
         /// No-op stub; all arguments are ignored.
-        pub unsafe fn create_simple_window(
+        pub unsafe extern "C" fn create_simple_window(
             _display: *mut Display,
             _parent: Window,
             _x: c_int,

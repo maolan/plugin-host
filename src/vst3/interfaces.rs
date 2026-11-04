@@ -1575,10 +1575,14 @@ fn extract_string128(s: &String128) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(miri))]
     use std::fs::{self, File};
+    #[cfg(not(miri))]
     use std::path::PathBuf;
+    #[cfg(not(miri))]
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    #[cfg(not(miri))]
     fn unique_temp_dir(name: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -1615,7 +1619,7 @@ mod tests {
         assert_eq!(extract_cstring(&bytes), "XYZ");
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(miri)))]
     #[test]
     fn get_module_path_returns_unix_shared_object_path() {
         let bundle_path = unique_temp_dir("vst3-module").join("Example.vst3");
@@ -1634,7 +1638,7 @@ mod tests {
         let _ = fs::remove_dir_all(bundle_path.parent().expect("bundle parent"));
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(miri)))]
     #[test]
     fn get_module_path_errors_when_unix_module_is_missing() {
         let bundle_path = unique_temp_dir("missing-vst3").join("Missing.vst3");
@@ -1647,7 +1651,7 @@ mod tests {
         let _ = fs::remove_dir_all(bundle_path.parent().expect("bundle parent"));
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", not(miri)))]
     #[test]
     fn get_module_path_returns_windows_vst3_binary_path() {
         let bundle_path = unique_temp_dir("vst3-module").join("Example.vst3");
@@ -1666,7 +1670,7 @@ mod tests {
         let _ = fs::remove_dir_all(bundle_path.parent().expect("bundle parent"));
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", not(miri)))]
     #[test]
     fn get_module_path_errors_when_windows_module_is_missing() {
         let bundle_path = unique_temp_dir("missing-vst3").join("Missing.vst3");

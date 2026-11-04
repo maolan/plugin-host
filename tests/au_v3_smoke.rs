@@ -11,7 +11,7 @@
 //!    against one and pumps an audio block over SHM. This machine may have no
 //!    AUv3 extensions installed; the test skips with a message in that case.
 
-#![cfg(target_os = "macos")]
+#![cfg(all(target_os = "macos", not(miri)))]
 
 use maolan_plugin_host::au::v3::V3Unit;
 use maolan_plugin_host::au::{AuComponentDesc, AuInitConfig, AuTransport, AuUnit};

@@ -2,10 +2,10 @@
 
 Out-of-process plugin host for the [Maolan DAW](https://maolan.github.io).
 
-This crate provides the reusable plugin-host library. Applications can build
-their own host process around it and communicate with the audio engine over
-shared memory and lightweight event channels. The Maolan DAW's host executable
-is built from `maolan/src/bin/maolan-plugin-host.rs`.
+This crate provides the reusable plugin-host library and a thin
+`maolan-plugin-host` executable around it. Applications can also build their
+own host process and communicate with the audio engine over shared memory and
+lightweight event channels.
 
 ## Supported formats
 
