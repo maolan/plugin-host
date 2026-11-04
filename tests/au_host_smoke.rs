@@ -3,7 +3,7 @@
 //! audio blocks, a DAW-side parameter set, and a state save/restore
 //! roundtrip over the real shared-memory protocol.
 
-#![cfg(target_os = "macos")]
+#![cfg(all(target_os = "macos", not(miri)))]
 
 use maolan_plugin_protocol::protocol::*;
 use maolan_plugin_protocol::ringbuf::RingBuffer;

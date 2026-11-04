@@ -344,9 +344,9 @@ extern "C" fn input_render_callback(
         // descriptors contiguously after the count, so index past the
         // declared `[AudioBuffer; 1]` via raw pointer arithmetic.
         let buffers = list.buffers.as_mut_ptr();
-        for i in 0..n {
+        for (i, input) in input_ref.ptrs.iter().copied().enumerate().take(n) {
             let buf = &mut *buffers.add(i);
-            buf.data = input_ref.ptrs[i].cast();
+            buf.data = input.cast();
             buf.number_channels = 1;
             buf.data_byte_size = frames * 4;
         }

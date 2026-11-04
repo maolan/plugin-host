@@ -767,8 +767,10 @@ mod tests {
     #[test]
     fn au_params_scratch_roundtrip() {
         let params = sample_params();
-        let mut shm = vec![0u8; LAYOUT_SIZE];
-        let ptr = shm.as_mut_ptr();
+        let mut shm = std::iter::repeat_with(ShmHeader::default)
+            .take(LAYOUT_SIZE.div_ceil(std::mem::size_of::<ShmHeader>()))
+            .collect::<Vec<_>>();
+        let ptr = shm.as_mut_ptr().cast::<u8>();
         unsafe {
             init_shm_layout(ptr, LAYOUT_SIZE);
             write_au_params_to_scratch(ptr, &params).expect("write");
@@ -780,8 +782,10 @@ mod tests {
     #[test]
     fn au_state_roundtrip() {
         let state = vec![0xAA; 1000];
-        let mut shm = vec![0u8; LAYOUT_SIZE];
-        let ptr = shm.as_mut_ptr();
+        let mut shm = std::iter::repeat_with(ShmHeader::default)
+            .take(LAYOUT_SIZE.div_ceil(std::mem::size_of::<ShmHeader>()))
+            .collect::<Vec<_>>();
+        let ptr = shm.as_mut_ptr().cast::<u8>();
         unsafe {
             init_shm_layout(ptr, LAYOUT_SIZE);
             let scratch = scratch_ptr(ptr);

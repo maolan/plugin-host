@@ -32,6 +32,34 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
+      - name: Cache apt packages
+        if: contains(matrix.os, 'ubuntu')
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/rust.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Restore apt cache
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo mkdir -p /var/cache/apt/archives
+          sudo cp -r ~/apt-cache/. /var/cache/apt/archives/ 2>/dev/null || true
+
+      - name: Install system packages
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev
+
+      - name: Save apt cache
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          mkdir -p ~/apt-cache
+          cp /var/cache/apt/archives/*.deb ~/apt-cache/ 2>/dev/null || true
+
       - name: Check formatting
         run: cargo fmt --check
 
